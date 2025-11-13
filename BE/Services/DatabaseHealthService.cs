@@ -1,23 +1,43 @@
+using System.Data;
 using System.Threading.Tasks;
-using Npgsql;
+using BE.Constants;
+using BE.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace BE.Services;
 
 public class DatabaseHealthService
 {
-    private readonly NpgsqlDataSource _dataSource;
+    private readonly ApplicationDbContext _context;
 
-    public DatabaseHealthService(NpgsqlDataSource dataSource)
+    public DatabaseHealthService(ApplicationDbContext context)
     {
-        _dataSource = dataSource;
+        _context = context;
     }
 
     public async Task<string> GetDatabaseVersionAsync()
     {
-        await using var connection = await _dataSource.OpenConnectionAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = BE.Constants.DatabaseConstants.DatabaseHealthQuery;
-        var result = await command.ExecuteScalarAsync();
-        return result?.ToString() ?? string.Empty;
+        var connection = _context.Database.GetDbConnection();
+        var shouldClose = connection.State == ConnectionState.Closed;
+
+        try
+        {
+            if (shouldClose)
+            {
+                await connection.OpenAsync();
+            }
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = DatabaseConstants.DatabaseHealthQuery;
+            var result = await command.ExecuteScalarAsync();
+            return result?.ToString() ?? string.Empty;
+        }
+        finally
+        {
+            if (shouldClose && connection.State == ConnectionState.Open)
+            {
+                await connection.CloseAsync();
+            }
+        }
     }
 }

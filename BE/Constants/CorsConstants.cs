@@ -6,6 +6,8 @@ public static class CorsConstants
 
     public static readonly string[] AllowedOrigins =
     [
-        "https://feprn232.vercel.app"
+        "https://feprn232.vercel.app",
+        "http://localhost:5173",
+        "https://localhost:5173"
     ];
 }
